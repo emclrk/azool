@@ -1,0 +1,140 @@
+Classes:
+
+class Factory {
+public:
+  Factory() : tileCounts(), isEmpty(false) {}
+private:
+  int tileCounts[NUMCOLORS];  // initialize to 0s
+  bool isEmpty; // initialize to false
+}
+
+class Player {
+public:
+  Player();
+  void checkValidMove(TileColor color, int rowIdx) {
+    // check if valid move (color exists on selected factory, grid doesn't already have this color on that row,
+    // row is either empty or already has the same color)
+  }
+  void takeTilesFromFactory(int factoryIdx, TileColor color, int rowIdx) {
+    // call game board -> takeTiles(factoryIdx, color)
+    placeTiles(color, rowIdx);
+  }
+  void takeTilesFromPool(TileColor color, int rowIdx) {
+    // call game board -> takeTilesFromPool
+    int numTiles = 0;
+    bool poolPenalty = myGameBoardPtr->takeTilesFromPool(color, numTiles);
+    placeTiles(rowIdx, numTiles);
+  }  // takeTilesFromPool
+  void placeTiles(int rowIdx, int numTiles) {
+    // increment row with # of new tiles
+    rows[rowIdx] += numTiles;
+    int maxNumInRow = rowIdx + 1;
+    // if tiles overflow the row, take penalty(ies)
+    if (rows[rowIdx] > maxNumInRow) {
+      myNumPenaltiesForTurn += (rows[rowIdx] - maxNumInRow);
+      rows[rowIdx] = maxNumInRow;
+    }
+  }  // placeTiles
+  void endRound() {
+    // determine which rows are full of tiles
+    // update the grid
+    // send extra tiles back to the game board
+    // find the score for each tile placed
+    for (int ii = 0; ii < NUMCOLORS; ++ii) {
+      if (myRows[ii].first == (ii+1)) {
+        // filled a row. now place a tile on the grid
+        // determine which column it belongs to
+        int col = (ii + 5 - myRows[ii].second) % 5;
+        grid[ii][col] = true;
+        // search horizontally and vertically for points
+        myScore += scoreTile(ii, col);
+        // return extra tiles
+        myBoardPtr->returnTilesToBag(ii, myRows[ii].second);
+        // reset rows for next turn
+        myRows[ii].first = 0;
+        myRows[ii].second = NONE;
+      }
+    }
+    // Account for penalties
+  }  // endRound
+
+  int scoreTile(int row, int col) {
+    int tileScore = 1;
+    // Get column score
+    for (int ii = row - 1; ii > -1; --ii) {
+      if (!grid[ii][col]) {
+        break;
+      }
+      tileScore++;
+    }  // iterate above current row
+    for (int ii = row; ii < NUMCOLORS; ++ii) {
+      if (!grid[ii][col]) {
+        break;
+      }
+      tileScore++;
+    }  // iterate from current row down
+    // Get row score
+    for (int ii = col - 1; ii > -1; --ii) {
+      if (!grid[row][ii]) {
+        break;
+      }
+      tileScore++;
+    }  // iterate left of current column
+    for (int ii = col; ii < NUMCOLORS; ++ii) {
+      if (!grid[row][ii]) {
+        break;
+      }
+      tileScore++;
+    }  // iterate from current column to right
+  }  // scoreTile
+
+  void finalScore() {
+    // compute bonuses for rows, columns, 5 of a kind
+  }
+
+private:
+  // color = r + c % 5
+  bool myGrid[5][5];
+  std::pair<int, TileColor> myRows[NUMCOLORS];  // first - # of tiles on that row, second - color of tiles on row
+  GameBoard* myBoardPtr;
+  int myScore;
+  int myNumPenaltiesForTurn;
+};
+
+// who manages turns and rounds? probably the main function
+
+class GameBoard {
+public:
+  enum TileColor {
+    NONE = -1,
+    RED = 0,
+    BLUE,
+    GREEN,
+    YELLOW,
+    BLACK,
+    NUMCOLORS
+  };
+  GameBoard();
+  bool takeTilesFromFactory(int factoryIdx, TileColor color, uint6_t& numTiles) {
+    // clear factory
+    // add other tiles to pool
+    // return # of tiles given to player
+    // if failed, return false
+  }
+  bool takeTilesFromPool(TileColor color, uint6_t& numTiles) {
+    // zero color count in pool
+    // return # of tiles given to player (-1 if failed)
+    // if failed, return false
+  }
+  bool returnTilesToBag(uint6_t numTiles, TileColor color);
+  void endGame();  // called by a player if they get a row
+private:
+  void dealTiles();
+  void resetTiles();
+members:
+  - vector of factories?
+  int pool[NUMCOLORS];  // stores the count of each color currently in the pool; initialize to 0s
+  bool whiteTileInPool;  // initialize to true
+  std::vector<TileColor> tileBag;  // initialize to 20 of each color
+  bool lastRound; // initialize to false
+};
