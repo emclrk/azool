@@ -16,7 +16,7 @@ public:
   void endRound(bool& fullRow);
   void finalizeScore();
   int getScore() const { return myScore; }
-  void printMyBoard() const;
+  std::string printMyBoard() const;
   bool tookPenalty() const { return myTookPoolPenaltyThisTurn; }
   const std::string getPlayerName() const { return myName; }
 

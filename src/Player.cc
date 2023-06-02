@@ -1,6 +1,7 @@
 #include "Player.h"
 #include <iostream>
 #include <cstring>
+#include <sstream>
 
 Player::Player(GameBoard* const board, std::string name) :
   myGrid(),
@@ -228,41 +229,42 @@ void Player::finalizeScore() {
   myScore += (numFives*10);
 }  // Player::finalizeScore
 
-void Player::printMyBoard() const {
-  // TODO(implementation) - replace cout with ostream
-  std::cout << "*******************************\n";
-  std::cout << "PLAYER: " << myName << "\n";
-  std::cout << *myBoardPtr << "\n\n";
+std::string Player::printMyBoard() const {
+  std::ostringstream oss;
+  oss << "*******************************\n";
+  oss << "PLAYER: " << myName << "\n";
+  oss << *myBoardPtr << "\n\n";
   for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
-    std::cout << ii+1 << ") ";
+    oss << ii+1 << ") ";
     for (int jj = azool::NUMCOLORS; jj > (ii+1); --jj) {
-      std::cout << " ";
+      oss << " ";
     }
     for (int jj = ii; jj > -1; --jj) {
       if (myRows[ii].second == azool::NONE or
           jj >= myRows[ii].first) {
-        std::cout << "_";
+        oss << "_";
       }
       else if (jj < myRows[ii].first) {
-          std::cout << azool::TileColorSyms[myRows[ii].second];
+          oss << azool::TileColorSyms[myRows[ii].second];
       }
     }
     // print grid row
-    std::cout << "   |";
+    oss << "   |";
     for (int jj = 0; jj < azool::NUMCOLORS; ++jj) {
       // color = row + column % 5
       char color = (ii + jj) % 5;
       if (myGrid[ii][jj]) {
-        std::cout << static_cast<char>(azool::TileColorSyms[color] - 32) << "|";
+        oss << static_cast<char>(azool::TileColorSyms[color] - 32) << "|";
       }
       else {
-        std::cout << azool::TileColorSyms[color] << "|";
+        oss << azool::TileColorSyms[color] << "|";
       }
     }
-    std::cout << "\n";
+    oss << "\n";
   }  // iterate over rows
-  std::cout << "Penalties: " << myNumPenaltiesForTurn << std::endl;
-  std::cout << "Score: " << myScore << std::endl;
+  oss << "Penalties: " << myNumPenaltiesForTurn << "\n";
+  oss << "Score: " << myScore << "\n";
+  return oss.str();
   // TODO(feature) - print penalty tiles (?)
 }  // Player::printMyBoard
 
@@ -342,9 +344,10 @@ namespace {
 void Player::takeTurn() {
   // print game board, handle user input
   if (myBoardPtr->endOfRound()) return;
-  printMyBoard();
+  std::cout << printMyBoard();
   static const char* promptDrawInput = "What would you like to do?\n"
-                                       "[f] take from factory [p] take from pool "
+                                       "[f] take from factory "
+                                       "[p] take from pool "
                                        "[d] discard tile(s) "
                                        "[P] print game board again\n";
   static const char* promptDiscardInput = "From factory or pool? [f|p]\n";
@@ -401,7 +404,6 @@ void Player::takeTurn() {
       fullInput = true;
     }
     else if (drawType == 'd') {
-      // TODO(implementation) (make these strings more betterer)
       std::cout << promptDiscardInput << std::flush;
       char discardFrom = '\0';
       std::cin >> discardFrom;
@@ -438,7 +440,7 @@ void Player::takeTurn() {
       }  // discard from pool
     }
     else if (drawType == 'P') {
-      printMyBoard();
+      std::cout << printMyBoard();
     }
     else {
       std::cout << invalidEntryMessage << std::flush;

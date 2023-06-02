@@ -3,6 +3,7 @@
 #include <vector>
 #include <ostream>
 #include <cstring>
+#include <random>
 #include "tile_utils.h"
 
 class GameBoard {
@@ -14,8 +15,7 @@ public:
     int tileCounts[azool::NUMCOLORS];
   };  // struct Factory
 
-  GameBoard();
-  GameBoard(int factories);
+  GameBoard(int nPlayers=2);
   friend std::ostream& operator<<(std::ostream& out, const GameBoard& board);
   bool validFactoryRequest(int factoryIdx, azool::TileColor color);
   bool takeTilesFromFactory(int factoryIdx, azool::TileColor color, int& numTiles);
@@ -31,6 +31,8 @@ public:
     return tileFactories.empty();
   }
 private:
+  GameBoard(const GameBoard&) = delete;
+  GameBoard operator=(const GameBoard&) = delete;
   void resetBoard();
   // - vector of factories?
   std::vector<Factory> tileFactories;
@@ -39,5 +41,6 @@ private:
   bool whiteTileInPool;  // initialize to true
   std::vector<azool::TileColor> tileBag;  // initialize to 20 of each color
   bool lastRound; // initialize to false
+  std::default_random_engine rng;
 };
 #endif // GAMEBOARD_H_

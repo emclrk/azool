@@ -7,7 +7,7 @@
 void testPrint(GameBoard* game) {
   game->dealTiles();
   Player p1(game);
-  p1.printMyBoard();
+  std::cout << p1.printMyBoard();
   return;
 }
 
@@ -49,9 +49,9 @@ void playGame(GameBoard* game) {
   players[1]->finalizeScore();
   std::cout << " Final scores:\n"
             << players[0]->getScore() << "\n" << std::flush;
-  players[0]->printMyBoard();
+  std::cout << players[0]->printMyBoard();
   std::cout << players[0]->getScore() << "\n" << std::flush;
-  players[1]->printMyBoard();
+  std::cout << players[1]->printMyBoard();
   if (players[0]) delete players[0];
   if (players[1]) delete players[1];
 }

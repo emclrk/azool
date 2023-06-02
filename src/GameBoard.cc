@@ -1,32 +1,15 @@
 #include "GameBoard.h"
 #include <algorithm>
-#include <random>
 
-GameBoard::GameBoard() :
+GameBoard::GameBoard(int numPlayers) :
   tileFactories(),
-  maxNumFactories(5),  // TODO(feature) base on # of players? 2n+1
+  maxNumFactories(numPlayers*2+1),
   pool(),
   whiteTileInPool(true),
   tileBag(),
-  lastRound(false) {
+  lastRound(false),
+  rng(std::default_random_engine()) {
     resetBoard();
-  }  // GameBoard::GameBoard
-
-GameBoard::GameBoard(int factories) :
-  tileFactories(),
-  maxNumFactories(factories),
-  pool(),
-  whiteTileInPool(true),
-  tileBag(),
-  lastRound(false) {
-    tileBag.reserve(azool::NUMCOLORS * 20);
-    for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
-      pool[ii] = 0;  // initialize pool to 0s
-      // initialize tile bag to 20 of each color
-      for (int jj = 0; jj < 20; jj++) {
-        tileBag[ii * 20 + jj] = static_cast<azool::TileColor>(ii);
-      }
-    }
   }  // GameBoard::GameBoard
 
 std::ostream& operator<<(std::ostream& out, const GameBoard& board) {
@@ -102,8 +85,7 @@ void GameBoard::dealTiles() {
   if (tileBag.size() < 4*numFactories) {
     numFactories++;
   }
-  // TODO(implementation) - set random seed (probably somewhere else)
-  std::shuffle(tileBag.begin(), tileBag.end(), std::default_random_engine(590));
+  std::shuffle(tileBag.begin(), tileBag.end(),  rng);
   auto itr = tileBag.begin();
   for (int ii = 0; ii < numFactories and itr != tileBag.end(); ++ii) {
     Factory fact;
