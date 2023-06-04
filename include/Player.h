@@ -17,7 +17,7 @@ public:
   void finalizeScore();
   int getScore() const { return myScore; }
   std::string printMyBoard() const;
-  bool tookPenalty() const { return myTookPoolPenaltyThisTurn; }
+  bool tookPenalty() const { return myTookPoolPenaltyThisRound; }
   const std::string getPlayerName() const { return myName; }
 
 private:
@@ -33,8 +33,8 @@ private:
   TileRow myRows[azool::NUMCOLORS];
   GameBoard* const myBoardPtr;
   int myScore;
-  int myNumPenaltiesForTurn;
-  bool myTookPoolPenaltyThisTurn;
+  int myNumPenaltiesForRound;
+  bool myTookPoolPenaltyThisRound;
   const std::vector<int> PenaltyPoints = {0, 1, 2, 3, 5, 7, 10, 13, 15};
   std::string myName;
 };  // class Player

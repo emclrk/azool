@@ -1,5 +1,6 @@
 #include "GameBoard.h"
 #include <algorithm>
+#include <chrono>
 
 GameBoard::GameBoard(int numPlayers) :
   tileFactories(),
@@ -8,7 +9,8 @@ GameBoard::GameBoard(int numPlayers) :
   whiteTileInPool(true),
   tileBag(),
   lastRound(false),
-  rng(std::default_random_engine()) {
+  rng(std::default_random_engine(
+         std::chrono::system_clock::now().time_since_epoch().count())) {
     resetBoard();
   }  // GameBoard::GameBoard
 

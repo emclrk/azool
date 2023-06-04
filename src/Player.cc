@@ -9,8 +9,8 @@ Player::Player(GameBoard* const board, std::string name) :
   myBoardPtr(board),
   myName(name),
   myScore(0),
-  myNumPenaltiesForTurn(0),
-  myTookPoolPenaltyThisTurn(false) {
+  myNumPenaltiesForRound(0),
+  myTookPoolPenaltyThisRound(false) {
     int gridSize = azool::NUMCOLORS * azool::NUMCOLORS;
     memset(myGrid, 0, gridSize*sizeof(bool));
     for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
@@ -62,12 +62,13 @@ bool Player::takeTilesFromPool(azool::TileColor color, int rowIdx) {
     return false;  // couldn't get that tile from the pool
   }
   if (poolPenalty) {
-    myTookPoolPenaltyThisTurn = poolPenalty;
-    myNumPenaltiesForTurn++;
+    myTookPoolPenaltyThisRound = true;
+    myNumPenaltiesForRound++;
   }
   placeTiles(rowIdx, color, numTiles);
   return true;
 }  // Player::takeTilesFromPool
+
 void Player::placeTiles(int rowIdx, azool::TileColor color, int numTiles) {
   // increment row with # of new tiles
   myRows[rowIdx].first += numTiles;
@@ -76,7 +77,7 @@ void Player::placeTiles(int rowIdx, azool::TileColor color, int numTiles) {
   int maxNumInRow = rowIdx + 1;
   // if tiles overflow the row, take penalty(ies)
   if (myRows[rowIdx].first > maxNumInRow) {
-    myNumPenaltiesForTurn += (myRows[rowIdx].first - maxNumInRow);
+    myNumPenaltiesForRound += (myRows[rowIdx].first - maxNumInRow);
     myRows[rowIdx].first = maxNumInRow;
   }
 }  // Player::placeTiles
@@ -103,18 +104,19 @@ void Player::endRound(bool& fullRow) {
       myRows[rowIdx].second = azool::NONE;
     }
   }
-#ifdef DEBUG
-  std::cout << "Had " << myNumPenaltiesForTurn << " penalties this turn" << std::endl;
-#endif
-  if (myNumPenaltiesForTurn >= PenaltyPoints.size()) {
+  if (myNumPenaltiesForRound >= PenaltyPoints.size()) {
     myScore -= PenaltyPoints[PenaltyPoints.size() - 1];
   }
   else {
-    myScore -= PenaltyPoints[myNumPenaltiesForTurn];
+    myScore -= PenaltyPoints[myNumPenaltiesForRound];
   }
   // reset for next turn
-  myTookPoolPenaltyThisTurn = false;
-  myNumPenaltiesForTurn = 0;
+  // FOR THIS REASON
+  // main loop needs to check who took penalty BEFORE calling this function
+  // I don't love that, but not sure what else to do
+  myTookPoolPenaltyThisRound = false;
+  myNumPenaltiesForRound = 0;
+
   // Check if there's a full row on the grid
   for (int rowIdx = 0; rowIdx < azool::NUMCOLORS; ++rowIdx) {
     fullRow = true;
@@ -176,7 +178,9 @@ int Player::scoreTile(int tileRow, int tileCol) {
     }
     tileScore++;
   }  // iterate from current column to right
+#ifdef DEBUG
   std::cout << " Final Tile Score: " << tileScore << std::endl;
+#endif
   return tileScore;
 }  // Player::scoreTile
 
@@ -184,6 +188,7 @@ void Player::finalizeScore() {
   int numRows = 0;
   int numCols = 0;
   // compute bonus for rows
+  // TODO: print bonus info
   for (int rowIdx = 0; rowIdx < azool::NUMCOLORS; ++rowIdx) {
     bool fullRow = true;
     for (int colIdx = 0; colIdx < azool::NUMCOLORS; ++colIdx) {
@@ -262,7 +267,7 @@ std::string Player::printMyBoard() const {
     }
     oss << "\n";
   }  // iterate over rows
-  oss << "Penalties: " << myNumPenaltiesForTurn << "\n";
+  oss << "Penalties: " << myNumPenaltiesForRound << "\n";
   oss << "Score: " << myScore << "\n";
   return oss.str();
   // TODO(feature) - print penalty tiles (?)
@@ -271,7 +276,7 @@ std::string Player::printMyBoard() const {
 bool Player::discardFromFactory(int factoryIdx, azool::TileColor color) {
   int numTiles = -1;
   if (myBoardPtr->takeTilesFromFactory(factoryIdx, color, numTiles)) {
-    myNumPenaltiesForTurn += numTiles;
+    myNumPenaltiesForRound += numTiles;
     return true;
   }
   return false;
@@ -282,9 +287,9 @@ bool Player::discardFromPool(azool::TileColor color) {
   int numTiles = -1;
   if (myBoardPtr->takeTilesFromPool(color, numTiles, poolPenalty)) {
     if (poolPenalty) {
-      myNumPenaltiesForTurn++;
+      myNumPenaltiesForRound++;
     }
-    myNumPenaltiesForTurn += numTiles;
+    myNumPenaltiesForRound += numTiles;
     return true;
   }
   return false;
@@ -293,10 +298,10 @@ bool Player::discardFromPool(azool::TileColor color) {
 namespace {
   int promptForFactoryIdx(int maxNumFactories) {
     static const char* promptFactoryIdxDraw = "Which factory? enter index\n";
-    char factInput[256];  // wayy more than we need
+    char factInput;  // TODO can we safely say there will never be more than 9 possible?
     std::cout << promptFactoryIdxDraw << std::flush;
     std::cin >> factInput;
-    int factIdx = std::atoi(factInput);
+    int factIdx = std::atoi(&factInput);
     if (factIdx < 1 or factIdx > maxNumFactories) {
       return -1;
     }
@@ -330,10 +335,10 @@ namespace {
   }
   int promptForRow() {
     static const char* promptRowPlacement = "Place on which row? enter number [1-5]\n";
-    char rowInput[256] = {0};
-    std::cout << promptRowPlacement;
+    char rowInput;
+    std::cout << promptRowPlacement << std::flush;
     std::cin >> rowInput;
-    int rowIdx = std::atoi(rowInput);
+    int rowIdx = std::atoi(&rowInput);
     if (rowIdx < 1 or rowIdx > azool::NUMCOLORS) {
       return -1;
     }
@@ -447,5 +452,7 @@ void Player::takeTurn() {
     }
   }  // while !fullinput
   // options: take tile from pool or take tile from factory
-  // TODO(feature) - temporary...reprint board and hold briefly?
+  std::cout << printMyBoard() << std::flush;
+  // flush out any inputs still in the buffer
+  std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');
 }  // Player::takeTurn
