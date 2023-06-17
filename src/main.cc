@@ -44,12 +44,14 @@ void playGame(GameBoard* game) {
     players[0]->endRound(p0EndsGame);
     players[1]->endRound(p1EndsGame);
   }
-  players[0]->finalizeScore();
-  players[1]->finalizeScore();
-  std::cout << " Final scores:\n" << players[0]->getScore() << "\n" << players[1]->getScore() << "\n" << std::flush;
-  std::cout << players[0]->printMyBoard();
-  std::cout << players[1]->printMyBoard();
+  std::cout << " Final scores:\n";
   for (auto player : players) {
+    player->finalizeScore();
+    std::cout << player->getPlayerName() << ":  " << player->getScore() << "\n" << std::flush;
+  }
+  // separate loops b/c we want scores to print before printing boards
+  for (auto player : players) {
+    std::cout << player->printMyBoard() << std::flush;
     if (player) delete player;
   }
 }
