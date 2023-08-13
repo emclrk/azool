@@ -15,10 +15,16 @@ public:
   void placeTiles(int rowIdx, azool::TileColor color, int numTiles);
   void endRound(bool& fullRow);
   void finalizeScore();
-  int getScore() const { return myScore; }
+  int getScore() const {
+    return myScore;
+  }
   std::string printMyBoard() const;
-  bool tookPenalty() const { return myTookPoolPenaltyThisRound; }
-  const std::string getPlayerName() const { return myName; }
+  bool tookPenalty() const {
+    return myTookPoolPenaltyThisRound;
+  }
+  const std::string getPlayerName() const {
+    return myName;
+  }
 
 private:
   Player(const Player&) = delete;

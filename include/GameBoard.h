@@ -22,7 +22,9 @@ public:
   bool takeTilesFromPool(azool::TileColor color, int& numTiles, bool& poolPenalty);
   void returnTilesToBag(int numTiles, azool::TileColor color);
   void dealTiles();
-  int numFactories() { return tileFactories.size(); }
+  int numFactories() {
+    return tileFactories.size();
+  }
   bool endOfRound() {
     // round ends when the pool and tile factories are empty
     for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {

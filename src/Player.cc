@@ -11,13 +11,13 @@ Player::Player(GameBoard* const board, std::string name) :
   myScore(0),
   myNumPenaltiesForRound(0),
   myTookPoolPenaltyThisRound(false) {
-    int gridSize = azool::NUMCOLORS * azool::NUMCOLORS;
-    memset(myGrid, 0, gridSize*sizeof(bool));
-    for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
-      myRows[ii].first = 0;
-      myRows[ii].second = azool::NONE;
-    }  // initialize rows
-  }  // Player::Player
+  int gridSize = azool::NUMCOLORS * azool::NUMCOLORS;
+  memset(myGrid, 0, gridSize*sizeof(bool));
+  for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
+    myRows[ii].first = 0;
+    myRows[ii].second = azool::NONE;
+  }  // initialize rows
+}  // Player::Player
 
 bool Player::checkValidMove(azool::TileColor color, int rowIdx) const {
   // check if valid move
@@ -250,7 +250,7 @@ std::string Player::printMyBoard() const {
         oss << "_";
       }
       else if (jj < myRows[ii].first) {
-          oss << azool::TileColorSyms[myRows[ii].second];
+        oss << azool::TileColorSyms[myRows[ii].second];
       }
     }
     // print grid row
@@ -296,54 +296,54 @@ bool Player::discardFromPool(azool::TileColor color) {
 }  // Player::discardFromPool
 
 namespace {
-  int promptForFactoryIdx(int maxNumFactories) {
-    static const char* promptFactoryIdxDraw = "Which factory? enter index\n";
-    char factInput;  // TODO can we safely say there will never be more than 9 possible?
-    std::cout << promptFactoryIdxDraw << std::flush;
-    std::cin >> factInput;
-    int factIdx = std::atoi(&factInput);
-    if (factIdx < 1 or factIdx > maxNumFactories) {
-      return -1;
-    }
-    return factIdx;
+int promptForFactoryIdx(int maxNumFactories) {
+  static const char* promptFactoryIdxDraw = "Which factory? enter index\n";
+  char factInput;  // TODO can we safely say there will never be more than 9 possible?
+  std::cout << promptFactoryIdxDraw << std::flush;
+  std::cin >> factInput;
+  int factIdx = std::atoi(&factInput);
+  if (factIdx < 1 or factIdx > maxNumFactories) {
+    return -1;
   }
-  azool::TileColor promptForColor() {
-    static const char* promptColorDraw = "Which color? [r|b|g|y|k]\n";
-    char colorInput = '\0';
-    std::cout << promptColorDraw << std::flush;
-    std::cin >> colorInput;
-    switch(colorInput) {
-      case 'r':
-        return azool::RED;
-        break;
-      case 'b':
-        return azool::BLUE;
-        break;
-      case 'g':
-        return azool::GREEN;
-        break;
-      case 'y':
-        return azool::YELLOW;
-        break;
-      case 'k':
-        return azool::BLACK;
-        break;
-      default:
-        return azool::NONE;
-    }  // end switch
+  return factIdx;
+}
+azool::TileColor promptForColor() {
+  static const char* promptColorDraw = "Which color? [r|b|g|y|k]\n";
+  char colorInput = '\0';
+  std::cout << promptColorDraw << std::flush;
+  std::cin >> colorInput;
+  switch(colorInput) {
+  case 'r':
+    return azool::RED;
+    break;
+  case 'b':
+    return azool::BLUE;
+    break;
+  case 'g':
+    return azool::GREEN;
+    break;
+  case 'y':
+    return azool::YELLOW;
+    break;
+  case 'k':
+    return azool::BLACK;
+    break;
+  default:
     return azool::NONE;
+  }  // end switch
+  return azool::NONE;
+}
+int promptForRow() {
+  static const char* promptRowPlacement = "Place on which row? enter number [1-5]\n";
+  char rowInput;
+  std::cout << promptRowPlacement << std::flush;
+  std::cin >> rowInput;
+  int rowIdx = std::atoi(&rowInput);
+  if (rowIdx < 1 or rowIdx > azool::NUMCOLORS) {
+    return -1;
   }
-  int promptForRow() {
-    static const char* promptRowPlacement = "Place on which row? enter number [1-5]\n";
-    char rowInput;
-    std::cout << promptRowPlacement << std::flush;
-    std::cin >> rowInput;
-    int rowIdx = std::atoi(&rowInput);
-    if (rowIdx < 1 or rowIdx > azool::NUMCOLORS) {
-      return -1;
-    }
-    return rowIdx;
-  }
+  return rowIdx;
+}
 }  // anonymous namespace
 
 void Player::takeTurn() {

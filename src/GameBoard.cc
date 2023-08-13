@@ -10,9 +10,9 @@ GameBoard::GameBoard(int numPlayers) :
   tileBag(),
   lastRound(false),
   rng(std::default_random_engine(
-         std::chrono::system_clock::now().time_since_epoch().count())) {
-    resetBoard();
-  }  // GameBoard::GameBoard
+        std::chrono::system_clock::now().time_since_epoch().count())) {
+  resetBoard();
+}  // GameBoard::GameBoard
 
 std::ostream& operator<<(std::ostream& out, const GameBoard& board) {
   // user will input 1-indexed value, even though we 0-index internally
@@ -100,7 +100,7 @@ void GameBoard::dealTiles() {
     }
     tileFactories.push_back(fact);
   }
-}  // GameBoard::dealTiles 
+}  // GameBoard::dealTiles
 
 void GameBoard::resetBoard() {
   memset(pool, 0, azool::NUMCOLORS*sizeof(int));
