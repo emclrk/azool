@@ -25,6 +25,7 @@ public:
   const std::string getPlayerName() const {
     return myName;
   }
+  void sendRequest(/*string or stringstream?*/);
 
 private:
   Player(const Player&) = delete;

@@ -4,6 +4,7 @@
 #include <ostream>
 #include <cstring>
 #include <random>
+#include <boost/property_tree/ptree.hpp>
 #include "tile_utils.h"
 
 class GameBoard {
@@ -22,6 +23,8 @@ public:
   bool takeTilesFromPool(azool::TileColor color, int& numTiles, bool& poolPenalty);
   void returnTilesToBag(int numTiles, azool::TileColor color);
   void dealTiles();
+  void handleRequest(std::stringstream);
+  boost::property_tree::ptree serializeBoard() const;
   int numFactories() {
     return tileFactories.size();
   }
@@ -39,6 +42,7 @@ private:
   // - vector of factories?
   std::vector<Factory> tileFactories;
   int maxNumFactories;
+  int myNumPlayers;
   int pool[azool::NUMCOLORS];  // stores the count of each color currently in the pool; initialize to 0s
   bool whiteTileInPool;  // initialize to true
   std::vector<azool::TileColor> tileBag;  // initialize to 20 of each color

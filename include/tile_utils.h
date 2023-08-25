@@ -19,5 +19,11 @@ const std::string TileColorStrings[NUMCOLORS] =  {
 };
 
 const char TileColorSyms[NUMCOLORS] = { 'r', 'b', 'g', 'y', 'k' };
+const int MAXPLAYERS = 4;
+
+const std::string REQ_TYPE_DRAW_FROM_FACTORY    = "DRAW_FROM_FACTORY";
+const std::string REQ_TYPE_DRAW_FROM_POOL       = "DRAW_FROM_POOL";
+const std::string REQ_TYPE_RETURN_TO_BAG        = "RETURN_TO_BAG";
+const std::string REQ_TYPE_GET_BOARD            = "GET_BOARD";
 }
 #endif  // TILE_UTILS_H_

@@ -41,7 +41,14 @@ bool Player::checkValidMove(azool::TileColor color, int rowIdx) const {
 }  // Player::checkValidMove
 
 bool Player::takeTilesFromFactory(int factoryIdx, azool::TileColor color, int rowIdx) {
-  // call game board -> takeTiles(factoryIdx, color)
+  // pt::ptree request;
+  // request.put("req_type", azool::REQ_TYPE_DRAW_FROM_POOL);
+  // request.put("tile_color", color);
+  // request.put("factory_idx", factoryIdx);
+  // std::stringstream oss;
+  // pt::write_json(request, oss);
+  // send request to board
+  // recieve response
   int numTiles = 0;
   if (checkValidMove(color, rowIdx) and
       myBoardPtr->takeTilesFromFactory(factoryIdx, color, numTiles)) {
@@ -58,6 +65,16 @@ bool Player::takeTilesFromPool(azool::TileColor color, int rowIdx) {
   if (!checkValidMove(color, rowIdx)) {
     return false;
   }
+  // pt::ptree request;
+  // request.put("req_type", azool::REQ_TYPE_DRAW_FROM_POOL);
+  // request.put("tile_color", color);
+  // std::stringstream oss;
+  // pt::write_json(request, oss);
+  // send request to board
+  // recieve response
+  // bool success = inTree.get<bool>("success");
+  // int numTiles = inTree.get<int>("num_tiles_returned");
+  // bool poolPenalty = inTree.get<bool>("pool_penalty");
   if (!myBoardPtr->takeTilesFromPool(color, numTiles, poolPenalty)) {
     return false;  // couldn't get that tile from the pool
   }
@@ -98,6 +115,11 @@ void Player::endRound(bool& fullRow) {
       myGrid[rowIdx][col] = true;
       myScore += scoreTile(rowIdx, col);
       // return extra tiles -- rowIdx = the number of leftover tiles
+      // pt::ptree request;
+      // request.put("req_type", azool::REQ_TYPE_RETURN_TO_BAG);
+      // request.put("num_tiles_returned", rowIdx);
+      // request.put("tile_color", myRows[rowIdx].second);
+      // send request to gameboard
       myBoardPtr->returnTilesToBag(rowIdx, myRows[rowIdx].second);
       // reset rows for next turn
       myRows[rowIdx].first = 0;
@@ -235,6 +257,8 @@ void Player::finalizeScore() {
 }  // Player::finalizeScore
 
 std::string Player::printMyBoard() const {
+  // pt::ptree request;
+  // request.put("req_type", REQ_TYPE_GET_BOARD);
   std::ostringstream oss;
   oss << "*******************************\n";
   oss << "PLAYER: " << myName << "\n";
@@ -275,6 +299,17 @@ std::string Player::printMyBoard() const {
 
 bool Player::discardFromFactory(int factoryIdx, azool::TileColor color) {
   int numTiles = -1;
+  // pt::ptree request;
+  // request.put("req_type", azool::REQ_TYPE_DRAW_FROM_FACTORY);
+  // request.put("factory_idx", factoryIdx);
+  // request.put("tile_color", color);
+  // std::stringstream oss;
+  // pt::write_json(request, oss);
+  // send request to board
+  // recieve response
+  // bool success = inTree.get<bool>("success");
+  // int numTiles = inTree.get<int>("num_tiles_returned");
+  // if (success) myNumPenaltiesForRound += numTiles;
   if (myBoardPtr->takeTilesFromFactory(factoryIdx, color, numTiles)) {
     myNumPenaltiesForRound += numTiles;
     return true;
@@ -283,6 +318,16 @@ bool Player::discardFromFactory(int factoryIdx, azool::TileColor color) {
 }  // Player::discardFromFactory
 
 bool Player::discardFromPool(azool::TileColor color) {
+  // pt::ptree request;
+  // request.put("req_type", azool::REQ_TYPE_DRAW_FROM_POOL);
+  // request.put("tile_color", color);
+  // std::stringstream oss;
+  // pt::write_json(request, oss);
+  // send request to board
+  // recieve response
+  // bool success = inTree.get<bool>("success");
+  // int numTiles = inTree.get<int>("num_tiles_returned");
+  // bool poolPenalty = inTree.get<bool>("pool_penalty");
   bool poolPenalty = false;
   int numTiles = -1;
   if (myBoardPtr->takeTilesFromPool(color, numTiles, poolPenalty)) {
@@ -296,13 +341,13 @@ bool Player::discardFromPool(azool::TileColor color) {
 }  // Player::discardFromPool
 
 namespace {
-int promptForFactoryIdx(int maxNumFactories) {
+int promptForFactoryIdx(int maxFactIdx) {
   static const char* promptFactoryIdxDraw = "Which factory? enter index\n";
   char factInput;  // TODO can we safely say there will never be more than 9 possible?
   std::cout << promptFactoryIdxDraw << std::flush;
   std::cin >> factInput;
   int factIdx = std::atoi(&factInput);
-  if (factIdx < 1 or factIdx > maxNumFactories) {
+  if (factIdx < 1 or factIdx > maxFactIdx) {
     return -1;
   }
   return factIdx;
@@ -348,6 +393,11 @@ int promptForRow() {
 
 void Player::takeTurn() {
   // print game board, handle user input
+  // pt::ptree request;
+  // request.put("req_type", REQ_TYPE_GET_BOARD);
+  // bool endOfRound = inTree.get<bool>("end_of_round");
+  // // max idx for input - users use 1-indexing
+  // int maxFactIdx = inTree.get<int>("num_factories");
   if (myBoardPtr->endOfRound()) return;
   std::cout << printMyBoard();
   static const char* promptDrawInput = "What would you like to do?\n"

@@ -1,9 +1,14 @@
 #include "GameBoard.h"
 #include <algorithm>
 #include <chrono>
+#include <boost/property_tree/json_parser.hpp>
+#include <iostream>
+
+namespace pt = boost::property_tree;
 
 GameBoard::GameBoard(int numPlayers) :
   tileFactories(),
+  myNumPlayers(numPlayers),
   maxNumFactories(numPlayers*2+1),
   pool(),
   whiteTileInPool(true),
@@ -40,6 +45,7 @@ std::ostream& operator<<(std::ostream& out, const GameBoard& board) {
 bool GameBoard::validFactoryRequest(int factoryIdx, azool::TileColor color) {
   // check if color exists on specified factory
   bool retVal = factoryIdx < tileFactories.size() and
+                factoryIdx > -1 and
                 tileFactories[factoryIdx].tileCounts[color] > 0;
   return retVal;
 }
@@ -72,12 +78,12 @@ bool GameBoard::takeTilesFromPool(azool::TileColor color, int& numTiles, bool& p
   poolPenalty = whiteTileInPool;
   whiteTileInPool = false;
   return true;
-}
+}  // GameBoard::takeTilesFromPool
 void GameBoard::returnTilesToBag(int numTiles, azool::TileColor color) {
   for (int ii = 0; ii < numTiles; ++ii) {
     tileBag.emplace_back(color);
   }
-}
+}  // GameBoard::returnTilesToBag
 
 // random shuffle then read from the beginning of the vector?
 void GameBoard::dealTiles() {
@@ -101,6 +107,91 @@ void GameBoard::dealTiles() {
     tileFactories.push_back(fact);
   }
 }  // GameBoard::dealTiles
+
+pt::ptree GameBoard::serializeBoard() const {
+  pt::ptree outTree;
+  // factories
+  pt::ptree factTree;
+  int factCt = 1;
+  for (auto factory : tileFactories) {
+    std::stringstream factSS;
+    for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
+      for (int jj = 0; jj < factory.tileCounts[ii]; ++jj) {
+        factSS << azool::TileColorStrings[ii] << ",";
+      }
+    }
+    factTree.put(std::to_string(factCt), factSS.str());
+    factCt++;
+  }
+  outTree.add_child("factories", factTree);
+  outTree.put("num_factories", tileFactories.size());
+  // pool
+  pt::ptree poolTree;
+  for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
+    poolTree.put(azool::TileColorStrings[ii], pool[ii]);
+  }
+  if (whiteTileInPool) {
+    poolTree.put("penalty", -1);
+  }
+  else {
+    poolTree.put("penalty", 0);
+  }
+  outTree.add_child("pool", poolTree);
+  outTree.put("end_of_round", endOfRound());
+  return outTree;
+}  // GameBoard::serializeBoard
+
+void GameBoard::handleRequest(std::stringstream iss) {
+  pt::ptree inTree;
+  pt::read_json(iss, inTree);
+  pt::ptree outTree;
+  std::string req_type = inTree.get<std::string>("req_type");
+  // check type of request; check that required parameters are present; etc
+  // return: json with results, status, error msg if any
+  if (req_type.compare(azool::REQ_TYPE_DRAW_FROM_FACTORY) == 0) {
+    int idx = inTree.get<int>("factory_idx", -1);
+    int numTiles = 0;
+    azool::TileColor color = static_cast<azool::TileColor>(inTree.get<int>("tile_color"));
+    bool success = takeTilesFromFactory(idx, color, numTiles);
+    outTree.put("status", success ? "success" : "fail");
+    outTree.put("success", success);
+    outTree.put("num_tiles_returned", numTiles);
+    if (!success) {
+      outTree.put("error_msg", "INVALID FACTORY REQUEST");
+    }
+  }
+  else if (req_type.compare(azool::REQ_TYPE_DRAW_FROM_POOL) == 0) {
+    azool::TileColor color = static_cast<azool::TileColor>(inTree.get<int>("tile_color"));
+    int numTiles = 0;
+    bool penalty = false;
+    bool success = takeTilesFromPool(color, numTiles, penalty);
+    outTree.put("success", success);
+    outTree.put("status", success ? "success" : "fail");
+    outTree.put("num_tiles_returned", numTiles);
+    outTree.put("pool_penalty", penalty);
+    if (!success) {
+      outTree.put("error_msg", "INVALID POOL REQUEST");
+    }
+  }
+  else if (req_type.compare(azool::REQ_TYPE_RETURN_TO_BAG) == 0) {
+    int numTiles = inTree.get<int>("num_tiles_returned", 0);
+    azool::TileColor color = static_cast<azool::TileColor>(inTree.get<int>("tile_color"));
+    returnTilesToBag(numTiles, color);
+    outTree.put("success", true);  // no reason for this to fail
+    outTree.put("status", "success");
+  }
+  else if (req_type.compare(azool::REQ_TYPE_GET_BOARD) == 0) {
+    outTree = serializeBoard();
+  }
+  else {
+    // ERROR, BAD THINGS
+    outTree.put("error_msg", "INVALID REQUEST TYPE");
+  }
+  outTree.put("req_type", req_type);  // include request type in returned data
+  std::stringstream oss;
+  pt::write_json(oss, outTree);
+  // send oss over socket
+}  // GameBoard::handleRequest
 
 void GameBoard::resetBoard() {
   memset(pool, 0, azool::NUMCOLORS*sizeof(int));
