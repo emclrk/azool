@@ -276,7 +276,6 @@ std::string Player::printMyBoard() const {
   std::ostringstream oss;
   oss << "*******************************\n";
   oss << "PLAYER: " << myName << "\n";
-  oss << *myBoardPtr << "\n\n";
   for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
     oss << ii+1 << ") ";
     for (int jj = azool::NUMCOLORS; jj > (ii+1); --jj) {
@@ -297,7 +296,7 @@ std::string Player::printMyBoard() const {
       // color = row + column % 5
       char color = (ii + jj) % 5;
       if (myGrid[ii][jj]) {
-        oss << static_cast<char>(azool::TileColorSyms[color] - 32) << "|";
+        oss << azool::TileColorStrings[color] << "|";
       }
       else {
         oss << azool::TileColorSyms[color] << "|";
@@ -305,7 +304,14 @@ std::string Player::printMyBoard() const {
     }
     oss << "\n";
   }  // iterate over rows
-  oss << "Penalties: " << myNumPenaltiesForRound << "\n";
+  oss << "Penalties: " << myNumPenaltiesForRound;
+  if (myTookPoolPenaltyThisRound) {
+    oss << "*";
+  }
+  if (myNumPenaltiesForRound > 0) {
+    oss << " (-" << getScorePenalty() << ")";
+  }
+  oss << "\n";
   oss << "Score: " << myScore << "\n";
   oss << "-------------------------------\n";
   return oss.str();
@@ -374,7 +380,7 @@ int promptForFactoryIdx(int maxFactIdx) {
   return factIdx;
 }
 azool::TileColor promptForColor() {
-  static const char* promptColorDraw = "Which color? [r|b|g|y|k]\n";
+  static const char* promptColorDraw = "Which color? [r|b|g|y|w]\n";
   char colorInput = '\0';
   std::cout << promptColorDraw << std::flush;
   std::cin >> colorInput;
@@ -391,8 +397,8 @@ azool::TileColor promptForColor() {
   case 'y':
     return azool::YELLOW;
     break;
-  case 'k':
-    return azool::BLACK;
+  case 'w':
+    return azool::WHITE;
     break;
   default:
     return azool::NONE;
@@ -523,6 +529,7 @@ void Player::takeTurn() {
       }  // discard from pool
     }
     else if (drawType == 'P') {
+      std::cout << *myBoardPtr << "\n\n";
       std::cout << printMyBoard();
     }
     else {
@@ -530,6 +537,7 @@ void Player::takeTurn() {
     }
   }  // while !fullinput
   // options: take tile from pool or take tile from factory
+  std::cout << "\033c" << std::flush;
   std::cout << printMyBoard() << std::flush;
   // flush out any inputs still in the buffer
   std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n');

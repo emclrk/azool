@@ -23,7 +23,9 @@ void playGame(GameBoard* game) {
     while (!game->endOfRound()) {
       // TODO figure out how order will work for > 2 players
       firstPlayer->takeTurn();
+      sleep(1);
       secondPlayer->takeTurn();
+      sleep(1);
     }
     // check who took penalty
     // needs to be done before calling player->endRound()
@@ -41,6 +43,7 @@ void playGame(GameBoard* game) {
       secondPlayer = players[1];
     }
     std::cout << "End of round!" << std::endl;
+    std::cout << "\033c";
     players[0]->endRound(p0EndsGame);
     players[1]->endRound(p1EndsGame);
   }

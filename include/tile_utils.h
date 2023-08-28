@@ -7,18 +7,18 @@ enum TileColor {
   BLUE,
   GREEN,
   YELLOW,
-  BLACK,
+  WHITE,
   NUMCOLORS
 };
 const std::string TileColorStrings[NUMCOLORS] =  {
-  "red",
-  "blue",
-  "green",
-  "yellow",
-  "black"
+  "\x1B[1;41mR\x1B[0m",//"red",
+  "\x1B[1;44mB\x1B[0m",//"blue",
+  "\x1B[1;42mG\x1B[0m",//"green",
+  "\x1B[1;30;103mY\x1B[0m",//"yellow",
+  "\x1B[1;30;107mW\x1B[0m",//"white"
 };
 
-const char TileColorSyms[NUMCOLORS] = { 'r', 'b', 'g', 'y', 'k' };
+const char TileColorSyms[NUMCOLORS] = { 'r', 'b', 'g', 'y', 'w' };
 const int MAXPLAYERS = 4;
 
 const std::string REQ_TYPE_DRAW_FROM_FACTORY    = "DRAW_FROM_FACTORY";
