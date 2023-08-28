@@ -26,7 +26,7 @@ void playGame(GameBoard* game) {
       secondPlayer->takeTurn();
     }
     // check who took penalty
-    // needs to be done before claling player->endRound()
+    // needs to be done before calling player->endRound()
     if (players[0]->tookPenalty()) {
       firstPlayer = players[0];
       secondPlayer = players[1];

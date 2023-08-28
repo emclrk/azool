@@ -15,6 +15,7 @@ public:
   void placeTiles(int rowIdx, azool::TileColor color, int numTiles);
   void endRound(bool& fullRow);
   void finalizeScore();
+  std::string sendRequest(const std::string&);
   int getScore() const {
     return myScore;
   }
@@ -22,6 +23,7 @@ public:
   bool tookPenalty() const {
     return myTookPoolPenaltyThisRound;
   }
+  int getScorePenalty() const;
   const std::string getPlayerName() const {
     return myName;
   }

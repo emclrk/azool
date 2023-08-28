@@ -18,17 +18,17 @@ public:
 
   GameBoard(int nPlayers=2);
   friend std::ostream& operator<<(std::ostream& out, const GameBoard& board);
-  bool validFactoryRequest(int factoryIdx, azool::TileColor color);
+  bool validFactoryRequest(int factoryIdx, azool::TileColor color) const;
   bool takeTilesFromFactory(int factoryIdx, azool::TileColor color, int& numTiles);
   bool takeTilesFromPool(azool::TileColor color, int& numTiles, bool& poolPenalty);
   void returnTilesToBag(int numTiles, azool::TileColor color);
   void dealTiles();
-  void handleRequest(std::stringstream);
+  std::string handleRequest(const std::string&);
   boost::property_tree::ptree serializeBoard() const;
   int numFactories() {
     return tileFactories.size();
   }
-  bool endOfRound() {
+  bool endOfRound() const {
     // round ends when the pool and tile factories are empty
     for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
       if (pool[ii] > 0) return false;

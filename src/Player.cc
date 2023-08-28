@@ -2,6 +2,8 @@
 #include <iostream>
 #include <cstring>
 #include <sstream>
+#include <boost/property_tree/json_parser.hpp>
+namespace pt = boost::property_tree;
 
 Player::Player(GameBoard* const board, std::string name) :
   myGrid(),
@@ -41,17 +43,24 @@ bool Player::checkValidMove(azool::TileColor color, int rowIdx) const {
 }  // Player::checkValidMove
 
 bool Player::takeTilesFromFactory(int factoryIdx, azool::TileColor color, int rowIdx) {
-  // pt::ptree request;
-  // request.put("req_type", azool::REQ_TYPE_DRAW_FROM_POOL);
-  // request.put("tile_color", color);
-  // request.put("factory_idx", factoryIdx);
-  // std::stringstream oss;
-  // pt::write_json(request, oss);
-  // send request to board
-  // recieve response
-  int numTiles = 0;
-  if (checkValidMove(color, rowIdx) and
-      myBoardPtr->takeTilesFromFactory(factoryIdx, color, numTiles)) {
+  // checkValidMove first - can't undo request to boardptr
+  if (!checkValidMove(color, rowIdx)) {
+    return false;
+  }
+  pt::ptree request;
+  request.put("req_type", azool::REQ_TYPE_DRAW_FROM_FACTORY);
+  request.put("tile_color", color);
+  request.put("factory_idx", factoryIdx);
+  std::stringstream oss;
+  pt::write_json(oss, request);
+  // send request to board, recieve response
+  std::stringstream iss(sendRequest(oss.str()));
+  pt::ptree response;
+  pt::read_json(iss, response);
+  // std::cout << iss.str() << std::endl;
+  bool success = response.get<bool>("success", false);
+  int numTiles = response.get<int>("num_tiles_returned", 0);
+  if (success) {
     placeTiles(rowIdx, color, numTiles);
     return true;
   }
@@ -60,22 +69,22 @@ bool Player::takeTilesFromFactory(int factoryIdx, azool::TileColor color, int ro
 
 bool Player::takeTilesFromPool(azool::TileColor color, int rowIdx) {
   // call game board -> takeTilesFromPool
-  int numTiles = 0;
-  bool poolPenalty = false;
   if (!checkValidMove(color, rowIdx)) {
     return false;
   }
-  // pt::ptree request;
-  // request.put("req_type", azool::REQ_TYPE_DRAW_FROM_POOL);
-  // request.put("tile_color", color);
-  // std::stringstream oss;
-  // pt::write_json(request, oss);
-  // send request to board
-  // recieve response
-  // bool success = inTree.get<bool>("success");
-  // int numTiles = inTree.get<int>("num_tiles_returned");
-  // bool poolPenalty = inTree.get<bool>("pool_penalty");
-  if (!myBoardPtr->takeTilesFromPool(color, numTiles, poolPenalty)) {
+  pt::ptree request;
+  request.put("req_type", azool::REQ_TYPE_DRAW_FROM_POOL);
+  request.put("tile_color", color);
+  std::stringstream oss;
+  pt::write_json(oss, request);
+  // send request to board, recieve response
+  std::stringstream iss(sendRequest(oss.str()));
+  pt::ptree response;
+  pt::read_json(iss, response);
+  bool success = response.get<bool>("success", false);
+  int numTiles = response.get<int>("num_tiles_returned", 0);
+  bool poolPenalty = response.get<bool>("pool_penalty", false);
+  if (!success) {
     return false;  // couldn't get that tile from the pool
   }
   if (poolPenalty) {
@@ -115,23 +124,22 @@ void Player::endRound(bool& fullRow) {
       myGrid[rowIdx][col] = true;
       myScore += scoreTile(rowIdx, col);
       // return extra tiles -- rowIdx = the number of leftover tiles
-      // pt::ptree request;
-      // request.put("req_type", azool::REQ_TYPE_RETURN_TO_BAG);
-      // request.put("num_tiles_returned", rowIdx);
-      // request.put("tile_color", myRows[rowIdx].second);
-      // send request to gameboard
-      myBoardPtr->returnTilesToBag(rowIdx, myRows[rowIdx].second);
+      pt::ptree request;
+      request.put("req_type", azool::REQ_TYPE_RETURN_TO_BAG);
+      request.put("num_tiles_returned", rowIdx);
+      request.put("tile_color", myRows[rowIdx].second);
+      std::stringstream oss;
+      pt::write_json(oss, request);
+      // send request to gameboard...don't care abt response here (?)
+      sendRequest(oss.str());
+      // myBoardPtr->returnTilesToBag(rowIdx, myRows[rowIdx].second);
       // reset rows for next turn
       myRows[rowIdx].first = 0;
       myRows[rowIdx].second = azool::NONE;
     }
   }
-  if (myNumPenaltiesForRound >= PenaltyPoints.size()) {
-    myScore -= PenaltyPoints[PenaltyPoints.size() - 1];
-  }
-  else {
-    myScore -= PenaltyPoints[myNumPenaltiesForRound];
-  }
+  myScore -= getScorePenalty();
+  myScore = std::max(myScore, 0);  // let's not allow negatives
   // reset for next turn
   // FOR THIS REASON
   // main loop needs to check who took penalty BEFORE calling this function
@@ -156,6 +164,12 @@ void Player::endRound(bool& fullRow) {
   }  // iter over rows in grid
 }  // Player::endRound
 
+int Player::getScorePenalty() const {
+  if (myNumPenaltiesForRound >= PenaltyPoints.size()) {
+    return PenaltyPoints[PenaltyPoints.size() - 1];
+  }
+  return PenaltyPoints[myNumPenaltiesForRound];
+}
 int Player::scoreTile(int tileRow, int tileCol) {
   // search horizontally and vertically for points
   int tileScore = 1;
@@ -258,7 +272,7 @@ void Player::finalizeScore() {
 
 std::string Player::printMyBoard() const {
   // pt::ptree request;
-  // request.put("req_type", REQ_TYPE_GET_BOARD);
+  // request.put("req_type", azool::REQ_TYPE_GET_BOARD);
   std::ostringstream oss;
   oss << "*******************************\n";
   oss << "PLAYER: " << myName << "\n";
@@ -293,24 +307,25 @@ std::string Player::printMyBoard() const {
   }  // iterate over rows
   oss << "Penalties: " << myNumPenaltiesForRound << "\n";
   oss << "Score: " << myScore << "\n";
+  oss << "-------------------------------\n";
   return oss.str();
   // TODO(feature) - print penalty tiles (?)
 }  // Player::printMyBoard
 
 bool Player::discardFromFactory(int factoryIdx, azool::TileColor color) {
-  int numTiles = -1;
-  // pt::ptree request;
-  // request.put("req_type", azool::REQ_TYPE_DRAW_FROM_FACTORY);
-  // request.put("factory_idx", factoryIdx);
-  // request.put("tile_color", color);
-  // std::stringstream oss;
-  // pt::write_json(request, oss);
-  // send request to board
-  // recieve response
-  // bool success = inTree.get<bool>("success");
-  // int numTiles = inTree.get<int>("num_tiles_returned");
-  // if (success) myNumPenaltiesForRound += numTiles;
-  if (myBoardPtr->takeTilesFromFactory(factoryIdx, color, numTiles)) {
+  pt::ptree request;
+  request.put("req_type", azool::REQ_TYPE_DRAW_FROM_FACTORY);
+  request.put("factory_idx", factoryIdx);
+  request.put("tile_color", color);
+  std::stringstream oss;
+  pt::write_json(oss, request);
+  // send request to board, recieve response
+  std::stringstream iss(sendRequest(oss.str()));
+  pt::ptree response;
+  pt::read_json(iss, response);
+  bool success = response.get<bool>("success", false);
+  int numTiles = response.get<int>("num_tiles_returned", 0);
+  if (success) {
     myNumPenaltiesForRound += numTiles;
     return true;
   }
@@ -318,19 +333,19 @@ bool Player::discardFromFactory(int factoryIdx, azool::TileColor color) {
 }  // Player::discardFromFactory
 
 bool Player::discardFromPool(azool::TileColor color) {
-  // pt::ptree request;
-  // request.put("req_type", azool::REQ_TYPE_DRAW_FROM_POOL);
-  // request.put("tile_color", color);
-  // std::stringstream oss;
-  // pt::write_json(request, oss);
-  // send request to board
-  // recieve response
-  // bool success = inTree.get<bool>("success");
-  // int numTiles = inTree.get<int>("num_tiles_returned");
-  // bool poolPenalty = inTree.get<bool>("pool_penalty");
-  bool poolPenalty = false;
-  int numTiles = -1;
-  if (myBoardPtr->takeTilesFromPool(color, numTiles, poolPenalty)) {
+  pt::ptree request;
+  request.put("req_type", azool::REQ_TYPE_DRAW_FROM_POOL);
+  request.put("tile_color", color);
+  std::stringstream oss;
+  pt::write_json(oss, request);
+  // send request to board, recieve response
+  std::stringstream iss(sendRequest(oss.str()));
+  pt::ptree response;
+  pt::read_json(iss, response);
+  bool success = response.get<bool>("success", false);
+  int numTiles = response.get<int>("num_tiles_returned", 0);
+  bool poolPenalty = response.get<bool>("pool_penalty", false);
+  if (success) {
     if (poolPenalty) {
       myNumPenaltiesForRound++;
     }
@@ -339,6 +354,12 @@ bool Player::discardFromPool(azool::TileColor color) {
   }
   return false;
 }  // Player::discardFromPool
+
+std::string Player::sendRequest(const std::string& inStr) {
+  // do the socket stuff here
+  std::string rxStr = myBoardPtr->handleRequest(inStr);
+  return rxStr;
+}  // Player::sendRequest
 
 namespace {
 int promptForFactoryIdx(int maxFactIdx) {
@@ -393,12 +414,19 @@ int promptForRow() {
 
 void Player::takeTurn() {
   // print game board, handle user input
-  // pt::ptree request;
-  // request.put("req_type", REQ_TYPE_GET_BOARD);
-  // bool endOfRound = inTree.get<bool>("end_of_round");
-  // // max idx for input - users use 1-indexing
-  // int maxFactIdx = inTree.get<int>("num_factories");
-  if (myBoardPtr->endOfRound()) return;
+  pt::ptree request;
+  request.put("req_type", azool::REQ_TYPE_GET_BOARD);
+  std::stringstream reqss;
+  pt::write_json(reqss, request);
+  // send request to board, recieve response
+  std::stringstream iss(sendRequest(reqss.str()));
+  pt::ptree response;
+  pt::read_json(iss, response);
+  bool endOfRound = response.get<bool>("end_of_round");
+  // max idx for input - users use 1-indexing
+  int maxFactIdx = response.get<int>("num_factories");
+  if (endOfRound) return;
+  std::cout << *myBoardPtr << "\n\n";
   std::cout << printMyBoard();
   static const char* promptDrawInput = "What would you like to do?\n"
                                        "[f] take from factory "
@@ -416,7 +444,7 @@ void Player::takeTurn() {
     char drawType;
     std::cin >> drawType;
     if (drawType == 'f') {
-      int factIdx = promptForFactoryIdx(myBoardPtr->numFactories());
+      int factIdx = promptForFactoryIdx(maxFactIdx);
       // draw from factory
       if (factIdx == -1) {
         std::cout << invalidEntryMessage << std::flush;
@@ -463,7 +491,7 @@ void Player::takeTurn() {
       char discardFrom = '\0';
       std::cin >> discardFrom;
       if (discardFrom == 'f') {
-        int factIdx = promptForFactoryIdx(myBoardPtr->numFactories());
+        int factIdx = promptForFactoryIdx(maxFactIdx);
         // draw from factory
         if (factIdx == -1) {
           std::cout << invalidEntryMessage << std::flush;

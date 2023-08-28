@@ -42,7 +42,7 @@ std::ostream& operator<<(std::ostream& out, const GameBoard& board) {
   return out;
 }
 
-bool GameBoard::validFactoryRequest(int factoryIdx, azool::TileColor color) {
+bool GameBoard::validFactoryRequest(int factoryIdx, azool::TileColor color) const {
   // check if color exists on specified factory
   bool retVal = factoryIdx < tileFactories.size() and
                 factoryIdx > -1 and
@@ -141,7 +141,8 @@ pt::ptree GameBoard::serializeBoard() const {
   return outTree;
 }  // GameBoard::serializeBoard
 
-void GameBoard::handleRequest(std::stringstream iss) {
+std::string GameBoard::handleRequest(const std::string& instring) {
+  std::stringstream iss(instring);
   pt::ptree inTree;
   pt::read_json(iss, inTree);
   pt::ptree outTree;
@@ -190,7 +191,9 @@ void GameBoard::handleRequest(std::stringstream iss) {
   outTree.put("req_type", req_type);  // include request type in returned data
   std::stringstream oss;
   pt::write_json(oss, outTree);
-  // send oss over socket
+  std::string output = oss.str();
+  return output;
+  // send output string over socket
 }  // GameBoard::handleRequest
 
 void GameBoard::resetBoard() {
