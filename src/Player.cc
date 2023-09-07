@@ -430,15 +430,16 @@ void Player::takeTurn() {
   pt::read_json(iss, response);
   bool endOfRound = response.get<bool>("end_of_round");
   // max idx for input - users use 1-indexing
-  int maxFactIdx = response.get<int>("num_factories");
+  int numFactories = response.get<int>("num_factories");
+  int numInPool = response.get<int>("num_tiles_in_pool");
   if (endOfRound) return;
   std::cout << *myBoardPtr << "\n\n";
   std::cout << printMyBoard();
-  static const char* promptDrawInput = "What would you like to do?\n"
-                                       "[f] take from factory "
-                                       "[p] take from pool "
-                                       "[d] discard tile(s) "
-                                       "[P] print game board again\n";
+  static const char* promptDrawInput = "What would you like to do?\n";
+  static const char* promptFactoryDraw = "[f] take from factory ";
+  static const char* promptPoolDraw = "[p] take from pool ";
+  static const char* promptDiscard = "[d] discard tile(s) ";
+  static const char* promptPrintBoard = "[P] print game board again\n";
   static const char* promptDiscardInput = "From factory or pool? [f|p]\n";
   // TODO(feature) -- remove options when they're not valid?
   // (ie don't print [f] factory when there are no factories left)
@@ -447,10 +448,17 @@ void Player::takeTurn() {
   bool fullInput = false;
   while (!fullInput) {
     std::cout << promptDrawInput << std::flush;
+    if (numFactories > 0) {
+      std::cout << promptFactoryDraw << std::flush;
+    }
+    if (numInPool > 0) {
+      std::cout << promptPoolDraw << std::flush;
+    }
+    std::cout << promptDiscard << promptPrintBoard << std::flush;
     char drawType;
     std::cin >> drawType;
     if (drawType == 'f') {
-      int factIdx = promptForFactoryIdx(maxFactIdx);
+      int factIdx = promptForFactoryIdx(numFactories);
       // draw from factory
       if (factIdx == -1) {
         std::cout << invalidEntryMessage << std::flush;
@@ -497,7 +505,7 @@ void Player::takeTurn() {
       char discardFrom = '\0';
       std::cin >> discardFrom;
       if (discardFrom == 'f') {
-        int factIdx = promptForFactoryIdx(maxFactIdx);
+        int factIdx = promptForFactoryIdx(numFactories);
         // draw from factory
         if (factIdx == -1) {
           std::cout << invalidEntryMessage << std::flush;

@@ -127,8 +127,10 @@ pt::ptree GameBoard::serializeBoard() const {
   outTree.put("num_factories", tileFactories.size());
   // pool
   pt::ptree poolTree;
+  int numTilesInPool = 0;
   for (int ii = 0; ii < azool::NUMCOLORS; ++ii) {
     poolTree.put(azool::TileColorStrings[ii], pool[ii]);
+    numTilesInPool += pool[ii];
   }
   if (whiteTileInPool) {
     poolTree.put("penalty", -1);
@@ -137,6 +139,7 @@ pt::ptree GameBoard::serializeBoard() const {
     poolTree.put("penalty", 0);
   }
   outTree.add_child("pool", poolTree);
+  outTree.put("num_tiles_in_pool", numTilesInPool);
   outTree.put("end_of_round", endOfRound());
   return outTree;
 }  // GameBoard::serializeBoard
