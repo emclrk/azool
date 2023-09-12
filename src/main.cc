@@ -1,6 +1,7 @@
 #include "GameBoard.h"
 #include "Player.h"
 #include <iostream>
+#include <boost/lexical_cast.hpp>
 
 // who manages turns and rounds? probably the main function
 
@@ -11,41 +12,44 @@ void testPrint(GameBoard* game) {
   return;
 }
 
-void playGame(GameBoard* game) {
-  std::vector<Player*> players = {new Player(game, "P1"), new Player(game, "P2")};
+void playGame(GameBoard* game, int numPlayers=2) {
+  std::vector<Player*> players;
+  for (int ii = 0; ii < numPlayers; ++ii) {
+    std::string name = "P" + boost::lexical_cast<std::string>(ii+1);
+    players.push_back(new Player(game, name));
+  }
   bool endOfGame = false;
-  Player* firstPlayer = players[0];  // pointers to keep track of first and second player
-  Player* secondPlayer = players[1];
-  bool p0EndsGame = false;
-  bool p1EndsGame = false;
-  while (!(p0EndsGame or p1EndsGame)) {
+  int firstPlayerIdx = 0;
+  bool endGame = false;
+  while (!endGame) {
     game->dealTiles();
     while (!game->endOfRound()) {
-      // TODO figure out how order will work for > 2 players
-      firstPlayer->takeTurn();
-      sleep(1);
-      secondPlayer->takeTurn();
-      sleep(1);
+      for (int ii = 0; ii < numPlayers; ++ii) {
+        int idx = (ii + firstPlayerIdx) % numPlayers;
+        players[idx]->takeTurn();
+        sleep(1);
+      }
     }
-    // check who took penalty
-    // needs to be done before calling player->endRound()
-    if (players[0]->tookPenalty()) {
-      firstPlayer = players[0];
-      secondPlayer = players[1];
+    firstPlayerIdx = -1;
+    for (int ii = 0; ii < numPlayers; ++ii) {
+      if (players[ii]->tookPenalty()) {
+        firstPlayerIdx = ii;
+        break;
+      }
     }
-    else if (players[1]->tookPenalty()) {
-      firstPlayer = players[1];
-      secondPlayer = players[0];
-    }
-    else {
+    if (firstPlayerIdx < 0) {
       std::cerr << "SOMETHING WEIRD - SoMeone has to go first...\n" << std::flush;
-      firstPlayer = players[0];
-      secondPlayer = players[1];
+      firstPlayerIdx = 0;
     }
     std::cout << "End of round!" << std::endl;
     std::cout << "\033c";
-    players[0]->endRound(p0EndsGame);
-    players[1]->endRound(p1EndsGame);
+    for (auto player : players) {
+      bool fullRow = false;
+      player->endRound(fullRow);
+      if (fullRow) {
+        endGame = true;
+      }
+    }
   }
   std::cout << " Final scores:\n";
   for (auto player : players) {
@@ -59,9 +63,38 @@ void playGame(GameBoard* game) {
   }
 }
 
-int main() {
-  GameBoard* game = new GameBoard();
-  playGame(game);
+int main(int argc, char* argv[]) {
+  int numPlayers = 2;
+  static const std::string helpMsg =
+    "USAGE: bin/azool [-p NUM_PLAYERS] [-h]\n"
+    "-p     number of players between 2-4 (default=2)\n"
+    "-h     print help and exit\n";
+  for (int ii = 1; ii < argc; ++ii) {
+    if (strcmp(argv[ii], "-p") == 0) {
+      if (argc <= (ii+1)) {
+        std::cerr << "ERROR: not enough arguments.\n" << helpMsg << std::flush;
+        return 1;
+      }
+      // next argument is # of players. need to increment
+      numPlayers = boost::lexical_cast<int>(argv[++ii]);
+      if (numPlayers < 2 or numPlayers > 4) {
+        std::cerr << "ERROR: invalid number of players!\n" << helpMsg << std::flush;
+        return 1;
+      }
+    }
+    else if (strcmp(argv[ii], "-h") == 0) {
+      std::cout << helpMsg << std::flush;
+      return 0;
+    }
+    else {
+      std::cerr << "ERROR: Unrecognized argument" << std::endl;
+        std::cerr << helpMsg << std::flush;
+        return 1;
+    }
+  }  // iterate over arguments
+  std::cout << "playing with " << numPlayers << " players" << std::endl;
+  GameBoard* game = new GameBoard(numPlayers);
+  playGame(game, numPlayers);
   if (game) delete game;
   return 0;
 }
