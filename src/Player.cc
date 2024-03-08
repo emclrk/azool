@@ -103,8 +103,17 @@ void Player::placeTiles(int rowIdx, azool::TileColor color, int numTiles) {
   int maxNumInRow = rowIdx + 1;
   // if tiles overflow the row, take penalty(ies)
   if (myRows[rowIdx].first > maxNumInRow) {
-    myNumPenaltiesForRound += (myRows[rowIdx].first - maxNumInRow);
+    int numExtraTiles = (myRows[rowIdx].first - maxNumInRow);
+    myNumPenaltiesForRound += numExtraTiles;
     myRows[rowIdx].first = maxNumInRow;
+    pt::ptree request;
+    request.put("req_type", azool::REQ_TYPE_RETURN_TO_BAG);
+    request.put("num_tiles_returned", numExtraTiles);
+    request.put("tile_color", color);
+    std::stringstream oss;
+    pt::write_json(oss, request);
+    // TODO...do we care about the response?
+    sendRequest(oss.str());
   }
 }  // Player::placeTiles
 
@@ -333,6 +342,14 @@ bool Player::discardFromFactory(int factoryIdx, azool::TileColor color) {
   int numTiles = response.get<int>("num_tiles_returned", 0);
   if (success) {
     myNumPenaltiesForRound += numTiles;
+    request.clear();
+    oss.clear();
+    request.put("req_type", azool::REQ_TYPE_RETURN_TO_BAG);
+    request.put("num_tiles_returned", numTiles);
+    request.put("tile_color", color);
+    pt::write_json(oss, request);
+    // TODO...do we care about a response here?
+    sendRequest(oss.str());
     return true;
   }
   return false;
@@ -356,6 +373,14 @@ bool Player::discardFromPool(azool::TileColor color) {
       myNumPenaltiesForRound++;
     }
     myNumPenaltiesForRound += numTiles;
+    oss.clear();
+    request.clear();
+    request.put("req_type", azool::REQ_TYPE_RETURN_TO_BAG);
+    request.put("num_tiles_returned", numTiles);
+    request.put("tile_color", color);
+    pt::write_json(oss, request);
+    // TODO...do we care about a response here?
+    sendRequest(oss.str());
     return true;
   }
   return false;

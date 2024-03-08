@@ -106,6 +106,7 @@ void GameBoard::dealTiles() {
     }
     tileFactories.push_back(fact);
   }
+  tileBag.erase(tileBag.begin(), itr);
 }  // GameBoard::dealTiles
 
 pt::ptree GameBoard::serializeBoard() const {
